@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能图像处理系统 - FastAPI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --background-dark: #1a1a2e;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --card-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.8);
+            --success: #4fd1c7;
+            --warning: #f6ad55;
+            --error: #fc8181;
+            --border-radius: 12px;
+            --spacing: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 头部样式 */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            opacity: 0.9;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* 卡片基础样式 */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        /* 控制面板样式 */
+        .control-panel {
+            position: sticky;
+            top: 20px;
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: var(--border-radius);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--success);
+            background: rgba(79, 209, 199, 0.05);
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--success);
+            background: rgba(79, 209, 199, 0.1);
+        }
+
+        /* 处理按钮 */
+        .process-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .process-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .process-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .process-btn i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* 预览区域 */
+        .preview-area {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .image-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .image-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .image-section h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .image-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .image-placeholder {
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .image-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            display: block;
+            opacity: 0.5;
+        }
+
+        /* RGB数据展示 */
+        .rgb-data {
+            display: none;
+        }
+
+        .rgb-content {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .rgb-row {
+            margin-bottom: 4px;
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator.success {
+            background: rgba(79, 209, 199, 0.1);
+            color: var(--success);
+        }
+
+        .status-indicator.error {
+            background: rgba(252, 129, 129, 0.1);
+            color: var(--error);
+        }
+
+        .status-indicator.processing {
+            background: rgba(246, 173, 85, 0.1);
+            color: var(--warning);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .image-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>🎨 智能图像处理系统</h1>
+            <p>基于 FastAPI 的后端图像处理平台</p>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 左侧控制面板 -->
+            <div class="card control-panel">
+                <div class="card-header">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>控制面板</span>
+                </div>
+
+                <!-- 上传区域 -->
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>点击或拖拽上传图片</p>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+
+                <!-- 状态指示 -->
+                <div class="status-indicator" id="statusIndicator">
+                    <i class="fas fa-info-circle"></i>
+                    <span>请上传图片开始处理</span>
+                </div>
+
+                <!-- 处理按钮 -->
+                <div class="process-buttons">
+                    <button class="process-btn" onclick="processImage('grayscale')">
+                        <i class="fas fa-moon"></i>
+                        <span>灰度处理</span>
+                    </button>
+                    <button class="process-btn" onclick="processImage('black_background')">
+                        <i class="fas fa-adjust"></i>
+                        <span>黑背景处理</span>
+                    </button>
+                    <button class="process-btn" onclick="processImage('red_outline')">
+                        <i class="fas fa-draw-polygon"></i>
+                        <span>红框检测</span>
+                    </button>
+                    <button class="process-btn" onclick="processImage('rotate')">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>旋转45°</span>
+                    </button>
+                    <button class="process-btn" onclick="processImage('rgb_output')">
+                        <i class="fas fa-table"></i>
+                        <span>RGB数据</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧预览区域 -->
+            <div class="preview-area">
+                <!-- 图片对比 -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-eye"></i>
+                        <span>预览区域</span>
+                    </div>
+                    
+                    <div class="image-comparison">
+                        <div class="image-section">
+                            <h4>原图</h4>
+                            <div class="image-container" id="originalImage">
+                                <div class="image-placeholder">
+                                    <i class="fas fa-image"></i>
+                                    <p>原图将在此显示</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="image-section">
+                            <h4>处理后</h4>
+                            <div class="image-container" id="resultImage">
+                                <div class="image-placeholder">
+                                    <i class="fas fa-magic"></i>
+                                    <p>处理结果将在此显示</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RGB数据展示 -->
+                <div class="card rgb-data" id="rgbData">
+                    <div class="card-header">
+                        <i class="fas fa-table"></i>
+                        <span>RGB像素数据</span>
+                    </div>
+                    <div class="rgb-content" id="rgbContent">
+                        <!-- RGB数据将动态填充 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImagePath = '';
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        // DOM元素
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const originalImage = document.getElementById('originalImage');
+        const resultImage = document.getElementById('resultImage');
+        const rgbData = document.getElementById('rgbData');
+        const rgbContent = document.getElementById('rgbContent');
+
+        // 上传区域事件
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                uploadImage();
+            }
+        });
+
+        fileInput.addEventListener('change', uploadImage);
+
+        // 上传图片函数
+        async function uploadImage() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                updateStatus('请上传图片文件', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                updateStatus('上传中...', 'processing');
+                
+                const response = await fetch(`${API_BASE}/upload/image`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    currentImagePath = data.file_path;
+                    updateStatus('✓ 图片上传成功', 'success');
+                    showOriginalImage();
+                } else {
+                    throw new Error(data.detail || '上传失败');
+                }
+            } catch (error) {
+                updateStatus(`上传失败: ${error.message}`, 'error');
+                console.error('Upload error:', error);
+            }
+        }
+
+        // 显示原图
+        async function showOriginalImage() {
+            if (!currentImagePath) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('file_path', currentImagePath);
+
+                const response = await fetch(`${API_BASE}/process/grayscale`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    originalImage.innerHTML = `<img src="data:image/jpeg;base64,${data.result}" alt="Original">`;
+                }
+            } catch (error) {
+                console.error('Error showing original image:', error);
+            }
+        }
+
+        // 处理图片函数
+        async function processImage(operation) {
+            if (!currentImagePath) {
+                updateStatus('请先上传图片', 'error');
+                return;
+            }
+
+            try {
+                updateStatus('处理中...', 'processing');
+                rgbData.style.display = 'none';
+
+                const formData = new FormData();
+                formData.append('file_path', currentImagePath);
+
+                const response = await fetch(`${API_BASE}/process/${operation}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    updateStatus('✓ 处理完成', 'success');
+
+                    if (operation === 'rgb_output') {
+                        // 显示RGB数据
+                        rgbData.style.display = 'block';
+                        displayRGBData(data.result);
+                        resultImage.innerHTML = '<div class="image-placeholder"><i class="fas fa-table"></i><p>RGB数据已生成</p></div>';
+                    } else {
+                        // 显示处理后的图片
+                        resultImage.innerHTML = `<img src="data:image/jpeg;base64,${data.result}" alt="Processed">`;
+                    }
+                } else {
+                    throw new Error(data.detail || '处理失败');
+                }
+            } catch (error) {
+                updateStatus(`处理失败: ${error.message}`, 'error');
+                console.error('Processing error:', error);
+            }
+        }
+
+        // 显示RGB数据
+        function displayRGBData(result) {
+            let html = `<p><strong>总像素:</strong> ${result.total_pixels}</p>`;
+            
+            if (result.preview && Array.isArray(result.preview)) {
+                html += '<div class="rgb-data-grid">';
+                result.preview.forEach(row => {
+                    html += '<div class="rgb-row">' + row.join(' | ') + '</div>';
+                });
+                html += '</div>';
+            }
+            
+            if (result.image) {
+                originalImage.innerHTML = `<img src="data:image/jpeg;base64,${result.image}" alt="Original">`;
+            }
+            
+            rgbContent.innerHTML = html;
+        }
+
+        // 更新状态指示器
+        function updateStatus(message, type = 'info') {
+            statusIndicator.className = `status-indicator ${type}`;
+            
+            let icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'processing') icon = 'loading-spinner';
+            
+            statusIndicator.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+        }
+    </script>
+</body>
+</html>
